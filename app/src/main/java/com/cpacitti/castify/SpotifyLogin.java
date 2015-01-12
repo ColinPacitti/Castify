@@ -1,12 +1,15 @@
 package com.cpacitti.castify;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import com.spotify.sdk.android.Spotify;
 import com.spotify.sdk.android.authentication.AuthenticationResponse;
@@ -23,14 +26,13 @@ public class SpotifyLogin extends ActionBarActivity implements
 
     private static final String CLIENT_ID = "619ebad03b1a455d8aadc88274c86d0c";
     private static final String REDIRECT_URI = "castify://callback";
-    private Player mPlayer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_spotify_login);
         SpotifyAuthentication.openAuthWindow(CLIENT_ID, "token", REDIRECT_URI,
-                new String[]{"user-read-private", "streaming"}, null, this);
+                new String[]{"user-read-private", "streaming", "user-library-read"}, null, this);
     }
 
     @Override
@@ -39,7 +41,7 @@ public class SpotifyLogin extends ActionBarActivity implements
         getMenuInflater().inflate(R.menu.menu_spotify_login, menu);
         return true;
     }
-//test
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
@@ -60,22 +62,12 @@ public class SpotifyLogin extends ActionBarActivity implements
         super.onNewIntent(intent);
         Uri uri = intent.getData();
         if (uri != null) {
-            AuthenticationResponse response = SpotifyAuthentication.parseOauthResponse(uri);
-            Config playerConfig = new Config(this, response.getAccessToken(), CLIENT_ID);
-            Spotify spotify = new Spotify();
-            mPlayer = spotify.getPlayer(playerConfig, this, new Player.InitializationObserver() {
-                @Override
-                public void onInitialized() {
-                    mPlayer.addConnectionStateCallback(SpotifyLogin.this);
-                    mPlayer.addPlayerNotificationCallback(SpotifyLogin.this);
-                    mPlayer.play("spotify:track:1XjKmqLHqnzNLYqYSRBIZK");
-                }
-
-                @Override
-                public void onError(Throwable throwable) {
-                    Log.e("MainActivity", "Could not initialize player: " + throwable.getMessage());
-                }
-            });
+            SharedPreferences sharedPref = getApplicationContext().getSharedPreferences("TOKEN", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPref.edit();
+            editor.putString("TOKEN", uri.toString());
+            editor.apply();
+            Intent myIntent = new Intent(SpotifyLogin.this, MainActivity.class);
+            SpotifyLogin.this.startActivity(myIntent);
         }
     }
 
